@@ -18,8 +18,8 @@ setup(
     zip_safe=True,
     maintainer='Amrani',
     maintainer_email='hamza.amrani8@etu.univ-lorraine.fr',
-    description='Description de votre paquet',
-    license='Licence de votre choix',
+    description='Description',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
