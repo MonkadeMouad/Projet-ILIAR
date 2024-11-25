@@ -1,0 +1,9 @@
+<launch>
+    
+    <include file="$(find-pkg-share iliar_gazebo)/launch/simulation.launch.xml">
+        <arg name="gazebo_gui" value="true"/>
+    </include>
+
+    
+    <include file="$(find-pkg-share iliar_solution2)/launch/rviz_gui.launch.xml"/>
+</launch>

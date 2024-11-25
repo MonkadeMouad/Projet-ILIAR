@@ -1,25 +1,22 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>iliar_solution</name>
+  <name>iliar_solution2</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="mouad.monkade2@etu.univ-lorraine.fr">monkade2</maintainer>
   <maintainer email="hamza.amrani8@etu.univ-lorraine.fr">amrani33u</maintainer>
-
-
-  <license>MIT</license>
-
-  <buildtool_depend>ament_cmake</buildtool_depend>
+  <license>TODO: License declaration</license>
 
   <depend>std_msgs</depend>
   <depend>iliar_gazebo</depend>
-  <depend>sensor_msgs</depend>
+  <depend>rviz2</depend>
 
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
 
   <export>
-    <build_type>ament_cmake</build_type>
+    <build_type>ament_python</build_type>
   </export>
 </package>

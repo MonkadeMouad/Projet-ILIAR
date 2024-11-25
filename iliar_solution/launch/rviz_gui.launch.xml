@@ -1,5 +1,0 @@
-<launch>
-    <node pkg="rviz2" exec="rviz2" output="screen"
-          args="--display-config $(find-pkg-share iliar_solution)/config/gui.rviz"/>
-          <arg name="gazebo_gui" default="true" />
-</launch>
