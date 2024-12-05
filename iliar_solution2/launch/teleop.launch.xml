@@ -1,0 +1,23 @@
+<launch>
+    <!-- Define the "world" argument with a default value -->
+    
+    <arg name="world" default="road.world"/>
+    <!-- Include simu_gui.launch.xml and pass the "world" argument -->
+    <include file="$(find-pkg-share iliar_solution2)/launch/simu_gui.launch.xml">
+        <arg name="world" value="$(var world)"/>
+    </include>
+
+    <!-- Node for teleop_command -->
+    <node
+        pkg="iliar_solution2"
+        exec="teleop_command"
+        output="screen">
+    </node>
+
+    <!-- Node for joy -->
+    <node
+        pkg="joy"
+        exec="joy_node"
+        output="screen">
+    </node>
+</launch>
