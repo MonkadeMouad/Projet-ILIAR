@@ -1,0 +1,21 @@
+<launch>	
+    <!-- Argument for the world -->
+    <arg name="world" default="road.world"/>
+
+    <!-- Launch the simulation -->
+    <include file="$(find-pkg-share iliar_solution2)/launch/simu_gui.launch.xml">
+	    <arg name="world" value="$(arg world)"/>
+    </include>
+
+    <!-- Launch the autopilot node -->
+    <node
+        pkg="iliar_solution2"
+        exec="autopilot"
+        output="screen">
+        <remap from="/audibot/left_camera/image_raw/compressed" to="/left"/>
+        <remap from="/audibot/front_camera/image_raw/compressed" to="/forward"/>
+        <remap from="/audibot/right_camera/image_raw/compressed" to="/right"/>
+        <remap from="/autopilot/steering_cmd" to="/steer"/>
+        <remap from="/autopilot/throttle_cmd" to="/throttle"/>
+    </node>
+</launch>

@@ -9,10 +9,6 @@ Subscriptions:
         - `/audibot/right_camera/image_raw/compressed` (sensor_msgs/CompressedImage)
         - `/audibot/steering_cmd` (std_msgs/Float64)
 
-Publications:
-
-Parameters:
-
 """
 
 # External imports
@@ -27,35 +23,51 @@ import numpy as np
 import os
 import re
 
+import shutil
+
+def atomic_save_npz(file_path, **data):
+    """Save an NPZ file by explicitly copying content to avoid extension issues."""
+    temp_path = f"{file_path}.tmp.npz"  # Temporary file name to match actual save behavior
+    try:
+        # Save to the temporary file
+        np.savez_compressed(temp_path, **data)
+
+        # Copy the content to the final file
+        shutil.copy(temp_path, file_path)
+        print(f"Atomic save successful: {file_path}")
+
+    except Exception as e:
+        raise RuntimeError(f"Error during atomic save: {e}")
+
+    finally:
+        # Clean up the temporary file
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
+
 class DatasetRecorder(Node):
-    """Listen to the images and steering command and save them to disk.
-    This node is used to record the dataset for training the neural network.
-    """
+    """Node to listen to images and steering commands and save them to disk."""
 
     def __init__(self):
         super().__init__("dataset_recorder")
+        self.get_logger().info("Recorder started!")
 
-        self.get_logger().info("Recorder started !")
-
-        # We will dump the dataset on drive every 500 samples
+        # Chunk configuration
         self.chunk_size = 500
-
-        # Directory to save the dataset
-        self.save_dir = "ros2_ws/dataset"
-        os.makedirs(self.save_dir, exist_ok=True)
-
-        # Determine the starting chunk index by finding the highest existing index
-        self.chunk_idx = self.get_highest_chunk_index() + 1
-
-        # These containers temporarily hold the data before the dump
-        # on the drive
         self.frames = []
         self.steerings = []
-
         self.last_steering = None
+        
+        # Dataset directory
+        self.save_dir = os.path.expanduser("~/ros2_ws/dataset")
+        os.makedirs(self.save_dir, exist_ok=True)
+        self.chunk_idx = self.get_highest_chunk_index() + 1
 
+        # CvBridge for image conversion
         self.bridge = CvBridge()
 
+        # QoS Profile for subscriptions
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
@@ -63,7 +75,7 @@ class DatasetRecorder(Node):
             depth=1,
         )
 
-        # Subscribers for images and steering
+        # Subscribers
         self.sub_left = Subscriber(self, CompressedImage, "/audibot/left_camera/image_raw/compressed", qos_profile=qos_profile)
         self.sub_front = Subscriber(self, CompressedImage, "/audibot/front_camera/image_raw/compressed", qos_profile=qos_profile)
         self.sub_right = Subscriber(self, CompressedImage, "/audibot/right_camera/image_raw/compressed", qos_profile=qos_profile)
@@ -71,96 +83,79 @@ class DatasetRecorder(Node):
             Float64, "/audibot/steering_cmd", self.on_steering, qos_profile
         )
 
-        # Synchronizer for the image topics
+        # Synchronizer
         self.sync = ApproximateTimeSynchronizer(
-            [self.sub_left, self.sub_front, self.sub_right],
-            queue_size=10,
-            slop=0.1,
+            [self.sub_left, self.sub_front, self.sub_right], queue_size=10, slop=0.1
         )
         self.sync.registerCallback(self.record_cb)
 
     def get_highest_chunk_index(self):
-        """Find the highest chunk index in the dataset directory."""
+        """Get the highest chunk index from the dataset directory."""
         existing_files = [
             f for f in os.listdir(self.save_dir) if re.match(r"chunk_\d+\.npz", f)
         ]
         if not existing_files:
-            return -1  # No existing files, start at index 0
+            return -1
 
-        # Extract numeric indices from filenames
         indices = [
             int(re.search(r"chunk_(\d+)\.npz", f).group(1)) for f in existing_files
         ]
         return max(indices)
 
     def on_steering(self, msg: Float64):
-        """Callback for the steering topic."""
+        """Callback to store the latest steering command."""
         self.last_steering = msg.data
 
-    def record_cb(
-        self,
-        left_msg: CompressedImage,
-        front_msg: CompressedImage,
-        right_msg: CompressedImage,
-    ):
-        """
-        Listen to the synchronized images and collect
-        both the images and steering command. When the
-        chunk size is reached, dump the data on the disk.
-        """
+    def record_cb(self, left_msg, front_msg, right_msg):
+        """Callback to process and store synchronized images and steering commands."""
         if self.last_steering is None:
             return
 
         try:
-            # Convert the compressed images to OpenCV format
+            # Convert compressed images to OpenCV format
             left_img = self.bridge.compressed_imgmsg_to_cv2(left_msg, "bgr8")
             front_img = self.bridge.compressed_imgmsg_to_cv2(front_msg, "bgr8")
             right_img = self.bridge.compressed_imgmsg_to_cv2(right_msg, "bgr8")
 
-            # Store the steering and the images
-            self.frames.append(
-                {
-                    "left": left_img,
-                    "front": front_img,
-                    "right": right_img,
-                }
-            )
+            # Append to temporary storage
+            self.frames.append({"left": left_img, "front": front_img, "right": right_img})
             self.steerings.append(self.last_steering)
 
-            if len(self.frames) == self.chunk_size:
-                # Dump them on disk
-                chunk_path = os.path.join(self.save_dir, f"chunk_{self.chunk_idx}.npz")
-                np.savez_compressed(
-                    chunk_path,
-                    frames=self.frames,
-                    steerings=self.steerings,
-                )
-                self.get_logger().info(f"Saved chunk {self.chunk_idx} to disk.")
-                self.chunk_idx += 1
-
-                # Clear temporary storage
-                self.steerings = []
-                self.frames = []
+            if len(self.frames) >= self.chunk_size:
+                self.save_chunk()
 
         except Exception as e:
             self.get_logger().error(f"Failed to process data: {e}")
 
+    def save_chunk(self):
+        """Save the current chunk of data to disk."""
+        chunk_path = os.path.join(self.save_dir, f"chunk_{self.chunk_idx}.npz")
+        try:
+            atomic_save_npz(chunk_path, frames=self.frames, steerings=self.steerings)
+            self.get_logger().info(f"Saved chunk {self.chunk_idx} to disk.")
+            self.chunk_idx += 1
+
+            # Clear temporary storage
+            self.frames.clear()
+            self.steerings.clear()
+
+        except Exception as e:
+            self.get_logger().error(f"Failed to save chunk {self.chunk_idx}: {e}")
+
 
 def main(args=None):
-    """Instantiation node and class."""
+    """Main function to initialize and run the node."""
     rclpy.init(args=args)
 
-    # Create node
-    dataset_recorder = DatasetRecorder()
-
-    # Run
+    recorder = DatasetRecorder()
+    print("start")
     try:
-        rclpy.spin(dataset_recorder)
+        rclpy.spin(recorder)
     except KeyboardInterrupt:
         pass
-
-    # end
-    rclpy.try_shutdown()
+    finally:
+        recorder.get_logger().info("Shutting down recorder.")
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":
