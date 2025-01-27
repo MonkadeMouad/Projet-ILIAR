@@ -176,9 +176,9 @@ class TeleopNode(Node):
             )
         else:
             # Publier des commandes à 0 pour s'assurer que le véhicule s'arrete lorsque le deadman buton n'est pas préssé
-            self.steering_pub.publish(Float64(data=0.0))
-            self.throttle_pub.publish(Float64(data=0.0))
-            self.brake_pub.publish(Float64(data=8000.0))
+            #self.steering_pub.publish(Float64(data=0.0))
+            #self.throttle_pub.publish(Float64(data=0.0))
+            #self.brake_pub.publish(Float64(data=8000.0))
             # Si le bouton deadman n'est pas appuyé, arrêter le véhicule
             self.get_logger().info("Deadman button not pressed: stopping the vehicule.")
 

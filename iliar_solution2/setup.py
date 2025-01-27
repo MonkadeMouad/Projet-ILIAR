@@ -29,8 +29,8 @@ setup(
         'console_scripts': [
             'teleop_command = iliar_solution2.teleop_command:main',
             'record_dataset=iliar_solution2.record_dataset:main',
-            'autopilot=iliar_solution2.autopilot:main'
-
+            'autopilot=iliar_solution2.autopilot:main',
+            'command_mux=iliar_solution2.command_mux:main'
         ],
     },
 )
