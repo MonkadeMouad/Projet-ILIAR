@@ -93,7 +93,7 @@ def train(config):
     print("Checkpointing setup complete.")
 
     # Define the model dump directory
-    model_dump_dir = "/usr/users/avr/avr_11/ILIAR1/modeldump"
+    model_dump_dir = "/usr/users/avr/avr_11/hammou1/hammou/ILIAR/modeldump"
     os.makedirs(model_dump_dir, exist_ok=True)
     logging.info(f"Model dumps will be saved in {model_dump_dir}")
     print(f"Model dump directory set to: {model_dump_dir}")

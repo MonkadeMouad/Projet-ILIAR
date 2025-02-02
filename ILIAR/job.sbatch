@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=templatecode
+#SBATCH --job-name=Iliartraining
 #SBATCH --nodes=1
 #SBATCH --partition=gpu_prod_long
 #SBATCH --time=6:00:00
