@@ -18,14 +18,14 @@ from torchtmpl.models import build_model
 from torchtmpl.optim import get_optimizer, get_loss
 from torchtmpl.utils import train_one_epoch, validate, ModelCheckpoint, generate_unique_logpath
 from torchtmpl.models.resnet_18 import ResNet18_9channels, MobileNetV2_9channels , NVIDIA_CNN  # Ensure this path is correct based on your project structure
-
+from torchtmpl.name_generator import generate_cool_name
 
 def train(config):
-    # Initialize W&B
+    run_name = generate_cool_name()
     wandb.init(
         project="YourProjectName",
         config=config,
-        name=config["logging"].get("run_name", "test00"),
+        name=run_name,
     )
 
     # Device setup
