@@ -9,8 +9,8 @@ def makejob(commit_id, configpath, nruns):
 
 #SBATCH --job-name=templatecode
 #SBATCH --nodes=1
-#SBATCH --partition=gpu_prod_long
-#SBATCH --time=6:00:00
+#SBATCH --partition=gpu_prod_night
+#SBATCH --time=8:00:00
 #SBATCH --output=logslurms/slurm-%A_%a.out
 #SBATCH --error=logslurms/slurm-%A_%a.err
 #SBATCH --array=1-{nruns}
