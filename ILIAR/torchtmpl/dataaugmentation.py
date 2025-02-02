@@ -165,16 +165,16 @@ def get_dataloaders(root, valid_ratio, batch_size, num_workers, augment=False, i
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=num_workers,
-        pin_memory=use_cuda
+        num_workers=4,  # Try increasing to 4 or 8
+        pin_memory=True if use_cuda else False  
     )
 
     valid_loader = torch.utils.data.DataLoader(
-        valid_dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=use_cuda
+    valid_dataset,
+    batch_size=batch_size,
+    shuffle=False,
+    num_workers=4,  # Keep the same here
+    pin_memory=True if use_cuda else False  
     )
 
     return train_loader, valid_loader
