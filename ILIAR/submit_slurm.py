@@ -7,7 +7,7 @@ import tempfile
 def makejob(commit_id, configpath, nruns):
     return f"""#!/bin/bash
 
-#SBATCH --job-name=templatecode
+#SBATCH --job-name=iliar_training
 #SBATCH --nodes=1
 #SBATCH --partition=gpu_prod_night
 #SBATCH --time=12:00:00
