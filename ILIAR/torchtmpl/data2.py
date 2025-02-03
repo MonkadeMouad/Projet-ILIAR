@@ -62,7 +62,7 @@ class NPZDatasetWithAugmentations(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         def preprocess_image(image, steering):
-            # 1️Random Brightness, Contrast, Hue
+            # 1️⃣ Random Brightness, Contrast, Hue
             brightness_factor = random.uniform(0.8, 1.2)
             contrast_factor = random.uniform(0.8, 1.2)
             hue_factor = random.uniform(-0.05, 0.05)
@@ -72,23 +72,23 @@ class NPZDatasetWithAugmentations(torch.utils.data.Dataset):
             image[:, :, 0] = np.clip(image[:, :, 0] + hue_factor * 255, 0, 255)
             image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
 
-            # 2️Random Horizontal Flip (Fix Steering Angle)
+            # 2️⃣ Random Horizontal Flip (Fix Steering Angle)
             if random.random() < 0.5:
                 image = cv2.flip(image, 1)
                 steering = -steering  # Invert the steering angle
 
-            # 3 Random Crop & Resize
+            # 3️⃣ Random Crop & Resize
             h, w, _ = image.shape
             x1, y1 = random.randint(0, w // 10), random.randint(0, h // 10)
             x2, y2 = w - random.randint(0, w // 10), h - random.randint(0, h // 10)
             image = image[y1:y2, x1:x2]
             image = cv2.resize(image, self.image_size)
 
-            # 4️Add Gaussian Noise
+            # 4️⃣ Add Gaussian Noise
             noise = np.random.normal(0, 0.01, image.shape)
             image = np.clip(image + noise, 0, 255)
 
-            # 5️Motion Blur (randomly apply)
+            # 5️⃣ Motion Blur (randomly apply)
             if random.random() < 0.2:
                 kernel_size = random.choice([3, 5, 7])
                 kernel = np.zeros((kernel_size, kernel_size))
@@ -100,35 +100,31 @@ class NPZDatasetWithAugmentations(torch.utils.data.Dataset):
             ordered_img = normalized.transpose(2, 0, 1)  # Convert HWC → CHW
             return torch.tensor(ordered_img, dtype=torch.float32), torch.tensor(steering, dtype=torch.float32)
 
+        # ✅ Removed tqdm here
+        for f, chunk in self.datafiles.items():
+            if idx < chunk["num_frames"]:
+                if self.cached_datafile["filename"] != f:
+                    self.cached_datafile = {
+                        "filename": f,
+                        "frames": chunk["frames"],
+                        "steerings": chunk["steerings"],
+                    }
 
-        with tqdm(total=self.num_frames, desc="Loading dataset", unit="frame", leave=False) as pbar:
-            for f, chunk in self.datafiles.items():
-                if idx < chunk["num_frames"]:
-                    if self.cached_datafile["filename"] != f:
-                        self.cached_datafile = {
-                            "filename": f,
-                            "frames": chunk["frames"],
-                            "steerings": chunk["steerings"],
-                        }
+                frames = self.cached_datafile["frames"]
+                steerings = self.cached_datafile["steerings"]
 
-                    frames = self.cached_datafile["frames"]
-                    steerings = self.cached_datafile["steerings"]
+                if isinstance(frames[idx], dict):
+                    left, _ = preprocess_image(frames[idx]["left"], steerings[idx])
+                    front, _ = preprocess_image(frames[idx]["front"], steerings[idx])
+                    right, steering = preprocess_image(frames[idx]["right"], steerings[idx])  # Keep the last steering
 
-                    if isinstance(frames[idx], dict):
-                        left, _ = preprocess_image(frames[idx]["left"], steerings[idx])
-                        front, _ = preprocess_image(frames[idx]["front"], steerings[idx])
-                        right, steering = preprocess_image(frames[idx]["right"], steerings[idx])  # Keep the last steering
+                else:
+                    raise TypeError("Frames should be a dictionary for multi-camera data.")
 
-                    else:
-                        raise TypeError("Frames should be a dictionary for multi-camera data.")
+                return left, front, right, torch.tensor(steerings[idx], dtype=torch.float32)
 
-                    steering = torch.tensor(steerings[idx], dtype=torch.float32)
+            idx -= chunk["num_frames"]
 
-                    pbar.update(1)  # Update progress bar
-
-                    return left, front, right, steering
-
-                idx -= chunk["num_frames"]
 
 
 def get_dataloaders(root, valid_ratio, batch_size, num_workers, augment=False, image_size=(128, 128), use_cuda=False):
