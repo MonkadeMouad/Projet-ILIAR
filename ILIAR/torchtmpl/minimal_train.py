@@ -15,7 +15,7 @@ from torchinfo import summary
 # Local imports
 from torchtmpl.data2 import get_dataloaders
 from torchtmpl.models import build_model
-from torchtmpl.optim import get_optimizer, get_loss
+from torchtmpl.optim import get_optimizer, get_loss , get_scheduler
 from torchtmpl.utils import train_one_epoch, validate, ModelCheckpoint, generate_unique_logpath
 from torchtmpl.models.resnet_18 import ResNet18_9channels, MobileNetV2_9channels , NVIDIA_CNN  # Ensure this path is correct based on your project structure
 from torchtmpl.name_generator import generate_cool_name
