@@ -145,7 +145,7 @@ def validate(model, dataloader, criterion, device):
     logging.info(f"Validation Loss: {avg_loss:.4f}, MAE: {avg_mae:.4f}, MSE: {avg_mse:.4f}")
     print(f"Validation Loss: {avg_loss:.4f}, MAE: {avg_mae:.4f}, MSE: {avg_mse:.4f}")
 
-    return avg_loss, avg_mae, avg_mse
+    return avg_loss
 
 
 
@@ -218,4 +218,4 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
     logging.info(f"Training Loss: {avg_loss:.4f}, MAE: {avg_mae:.4f}, MSE: {avg_mse:.4f}")
     logging.info(f"Epoch completed in {epoch_time:.2f} seconds")
 
-    return avg_loss, avg_mae, avg_mse
+    return avg_loss
