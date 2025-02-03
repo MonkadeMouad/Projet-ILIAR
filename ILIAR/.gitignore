@@ -23,7 +23,7 @@ MANIFEST
 # Environments
 venv/
 dataset_complet/*
-ILIAR1\modeldump*
+modeldump/*
 dataset_complet2/*
 configs/*
 

@@ -31,23 +31,56 @@ def get_optimizer(cfg, params):
 
     # Return the instantiated optimizer with the parameters and config options
     return optimizer_class(params, **cfg.get("params", {}))
+import torch.optim.lr_scheduler as lr_scheduler
+
+import torch.optim.lr_scheduler as lr_scheduler
+
+def get_scheduler(cfg, optimizer, train_loader=None, n_epochs=None):
+    """
+    Dynamically creates a learning rate scheduler based on the config file.
+
+    Args:
+        cfg (dict): The scheduler configuration with keys 'type' and additional params.
+        optimizer (torch.optim.Optimizer): The optimizer whose LR needs to be scheduled.
+        train_loader (DataLoader, optional): Training DataLoader (needed for OneCycleLR).
+        n_epochs (int, optional): Number of epochs (needed for OneCycleLR).
+
+    Returns:
+        torch.optim.lr_scheduler: The configured scheduler.
+    """
+    scheduler_class = getattr(lr_scheduler, cfg["type"], None)
+    if not scheduler_class:
+        raise ValueError(f"Unsupported scheduler: {cfg['type']}")
+
+    scheduler_params = {k: v for k, v in cfg.items() if k != "type"}
+
+    # Handle OneCycleLR separately since it requires total_steps
+    if cfg["type"] == "OneCycleLR":
+        if "total_steps" not in scheduler_params or scheduler_params["total_steps"] is None:
+            if train_loader is None or n_epochs is None:
+                raise ValueError("OneCycleLR requires `train_loader` and `n_epochs` to compute `total_steps`.")
+            total_steps = len(train_loader) * n_epochs  # Calculate total steps dynamically
+            scheduler_params["total_steps"] = total_steps
+
+    return scheduler_class(optimizer, **scheduler_params)
+
 
 import yaml
 import torch
 from torch.nn import Linear
 
 # Path to your configuration file
-CONFIG_PATH = "/usr/users/avr/avr_11/ILIAR1/configs/tmp4qmvnwmx-config.yml"
+CONFIG_PATH = "/usr/users/avr/avr_11/hammou1/hammou/ILIAR/configs/tmp4qmvnwmx-config.yml"
+
 
 if __name__ == "__main__":
     # Load the config file
     with open(CONFIG_PATH, "r") as file:
         config = yaml.safe_load(file)
 
-    # Test optimizer and loss functions
-    print("Testing get_loss and get_optimizer...")
+    print("Testing get_loss, get_optimizer, and get_scheduler...")
 
-    # Mock model for testing optimizer
+    # Mock model for testing optimizer and scheduler
     model = Linear(10, 1)  # Example model with simple linear layer
 
     # Test get_loss
@@ -73,5 +106,33 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error testing get_optimizer: {e}")
 
-    print("All tests passed!")
+    # Test get_scheduler
+    # Test get_scheduler
+    try:
+        class MockDataLoader:
+            def __len__(self):
+                return 100  # Assume 100 batches per epoch
 
+        train_loader = MockDataLoader()
+        n_epochs = config["training"]["epochs"]
+
+        scheduler = get_scheduler(config["scheduler"], optimizer, train_loader, n_epochs)
+
+        # Check if scheduler is valid (OneCycleLR is special)
+        valid_schedulers = (lr_scheduler._LRScheduler, lr_scheduler.OneCycleLR)
+
+        if not isinstance(scheduler, valid_schedulers):
+            raise TypeError(f"Scheduler {scheduler} is not a valid torch.optim.lr_scheduler.")
+
+        print(f"Scheduler created successfully: {scheduler}")
+
+        # Simulate stepping the scheduler
+        for _ in range(5):  # Simulating 5 epochs
+            if isinstance(scheduler, lr_scheduler.ReduceLROnPlateau):
+                scheduler.step(0.5)  # Dummy validation loss
+            else:
+                scheduler.step()
+            print(f"Scheduler stepped. Current LR: {scheduler.get_last_lr()[0]}")
+
+    except Exception as e:
+        print(f"Error testing get_scheduler: {e}")

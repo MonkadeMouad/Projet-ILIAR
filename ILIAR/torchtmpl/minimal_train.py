@@ -72,6 +72,12 @@ def train(config):
     optimizer = get_optimizer(optim_config, model.parameters())
     print(f"Optimizer configured: {optimizer}.")
 
+    # Configure the scheduler
+    logging.info("= Configuring the learning rate scheduler")
+    scheduler_config = config["scheduler"]
+    scheduler = get_scheduler(scheduler_config, optimizer, train_loader, config["training"]["epochs"])
+    print(f"Scheduler configured: {scheduler}.")
+
     # Logging directory
     logging_config = config["logging"]
     logdir = generate_unique_logpath(logging_config["logdir"], model_config["class"])
@@ -112,8 +118,16 @@ def train(config):
         valid_loss = validate(model, valid_loader, criterion, device)
         print(f"Validation Loss: {valid_loss:.4f}")
 
-        # Save the best model
-        
+        # Step optimizer and scheduler correctly
+        optimizer.step()  # Always step optimizer first
+        if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            scheduler.step(valid_loss)  # ReduceLROnPlateau needs validation loss
+        else:
+            scheduler.step()  # Other schedulers
+
+        # Get current learning rate
+        current_lr = scheduler.get_last_lr()[0]
+        print(f"Epoch {epoch + 1}: Learning Rate = {current_lr}")
 
         # Save the best model
         is_best = checkpoint.update(valid_loss)
@@ -126,11 +140,12 @@ def train(config):
         logging.info(f"Saved model for epoch {epoch + 1} at {epoch_model_path}")
         print(f"Model checkpoint saved at: {epoch_model_path}")
 
-       
+        # Log to W&B
         wandb.log({
             "epoch": epoch + 1,
             "train_loss": train_loss,
             "valid_loss": valid_loss,
+            "learning_rate": current_lr,
         })
         print(f"Metrics logged for Epoch {epoch + 1}.")
 
