@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=iliar_training
 #SBATCH --nodes=1
-#SBATCH --partition=gpu_prod_long
+#SBATCH --partition=gpu_prod_night
 #SBATCH --time=6:00:00
 #SBATCH --output=logslurms/slurm-%A_%a.out
 #SBATCH --error=logslurms/slurm-%A_%a.err
@@ -20,9 +20,9 @@ date
 mkdir $TMPDIR/code
 rsync -r --exclude logs --exclude logslurms --exclude configs . $TMPDIR/code
 
-echo "Checking out the correct version of the code commit_id 69c227972f656932ebeda21f35d93d44ebb8316b"
+echo "Checking out the correct version of the code commit_id c4be69f595cde34a0e3e6933ab169ef86bab68cd"
 cd $TMPDIR/code
-git checkout 69c227972f656932ebeda21f35d93d44ebb8316b
+git checkout c4be69f595cde34a0e3e6933ab169ef86bab68cd
 
 # Set up the virtual environment
 echo "Setting up the virtual environment"
@@ -46,7 +46,7 @@ echo "Logging into WandB"
 wandb login $WANDB_API_KEY
 # Start training
 echo "Training"
-python -m torchtmpl.minimal_train /usr/users/avr/avr_11/hammou1/hammou/ILIAR/configs/tmpzcl66inc-config.yml train
+python -m torchtmpl.minimal_train /usr/users/avr/avr_11/hammou1/hammou/ILIAR/configs/tmpve3g1ghq-config.yml train
 
 # Exit with error code if training fails
 if [[ $? != 0 ]]; then
