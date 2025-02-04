@@ -72,6 +72,10 @@ import torch
 import torch.nn as nn
 from torchvision.models import mobilenet_v2
 
+import torch
+import torch.nn as nn
+from torchvision.models import mobilenet_v2
+
 class MobileNetV2_9channels(nn.Module):
     def __init__(self, pretrained=True, num_classes=1, dropout_prob=0.3):
         super(MobileNetV2_9channels, self).__init__()
@@ -82,8 +86,8 @@ class MobileNetV2_9channels(nn.Module):
         # Modify the first convolutional layer to accept 9 channels instead of 3
         self.model = base_model
         self.model.features[0][0] = nn.Conv2d(
-            in_channels=9,              # Changed from 3 to 9
-            out_channels=32,            # Keep original out_channels
+            in_channels=9,
+            out_channels=32,
             kernel_size=3,
             stride=2,
             padding=1,
@@ -92,29 +96,35 @@ class MobileNetV2_9channels(nn.Module):
 
         # Initialize weights for new 9-channel conv layer
         if pretrained:
-            pretrained_conv1 = mobilenet_v2(pretrained=True).features[0][0].weight.data  # (32, 3, 3, 3)
-            new_conv1_weight = torch.zeros(32, 9, 3, 3)  # Initialize with zeros
+            pretrained_conv1 = mobilenet_v2(pretrained=True).features[0][0].weight.data
+            new_conv1_weight = torch.zeros(32, 9, 3, 3)
 
-            # Copy the first 3 channels from the pretrained model
+            # Copy first 3 channels from pretrained model
             new_conv1_weight[:, :3, :, :] = pretrained_conv1
 
-            # Fill the extra 6 channels with the mean of the first 3 channels
-            new_conv1_weight[:, 3:, :, :] = pretrained_conv1.mean(dim=1, keepdim=True).repeat(1, 6, 1, 1)
+            # Fill extra 6 channels with small random values
+            new_conv1_weight[:, 3:, :, :] = torch.randn_like(new_conv1_weight[:, 3:, :, :]) * 0.02
 
             self.model.features[0][0].weight = nn.Parameter(new_conv1_weight)
 
-        # Modify the classifier to match the desired number of output classes
-        in_features = self.model.classifier[1].in_features  # Get last FC layer input size
+        # Freeze first few layers for stability
+        for param in self.model.features[:5].parameters():
+            param.requires_grad = False  
+
+        # Modify classifier to include Tanh activation
+        in_features = self.model.classifier[1].in_features
         self.model.classifier = nn.Sequential(
             nn.Dropout(p=dropout_prob),
-            nn.Linear(in_features, num_classes)
+            nn.Linear(in_features, num_classes),
+            nn.Tanh()  # Constrains output between [-1,1]
         )
 
     def forward(self, left, front, right):
-        # Concatenate the left, forward, and right images along the channel dimension
+        # Concatenate left, forward, and right images along the channel dimension
         x = torch.cat([left, front, right], dim=1)
         x = self.model(x)
-        return x
+        return x * 2.0  # Scale back to [-2,2]
+
 
 import torch
 import torch.nn as nn

@@ -9,7 +9,7 @@ def makejob(commit_id, configpath, nruns):
 
 #SBATCH --job-name=iliar_training
 #SBATCH --nodes=1
-#SBATCH --partition=gpu_prod_night
+#SBATCH --partition=gpu_prod_long
 #SBATCH --time=6:00:00
 #SBATCH --output=logslurms/slurm-%A_%a.out
 #SBATCH --error=logslurms/slurm-%A_%a.err

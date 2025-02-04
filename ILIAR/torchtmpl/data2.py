@@ -61,8 +61,9 @@ class NPZDatasetWithAugmentations(torch.utils.data.Dataset):
         return self.num_frames
 
     def __getitem__(self, idx):
-        def preprocess_image(image, steering):
-            # 1️⃣ Random Brightness, Contrast, Hue
+        def preprocess_image(image):
+            """Apply augmentations and normalize the image for MobileNetV2."""
+            # 1️⃣ Random Brightness, Contrast, Hue Adjustments
             brightness_factor = random.uniform(0.8, 1.2)
             contrast_factor = random.uniform(0.8, 1.2)
             hue_factor = random.uniform(-0.05, 0.05)
@@ -99,9 +100,8 @@ class NPZDatasetWithAugmentations(torch.utils.data.Dataset):
             # Convert HWC → CHW for PyTorch
             image = image.transpose(2, 0, 1)
 
-            return torch.tensor(image, dtype=torch.float32), torch.tensor(steering, dtype=torch.float32)
+            return torch.tensor(image, dtype=torch.float32)
 
-        # ✅ Removed tqdm for efficiency
         for f, chunk in self.datafiles.items():
             if idx < chunk["num_frames"]:
                 if self.cached_datafile["filename"] != f:
@@ -115,15 +115,19 @@ class NPZDatasetWithAugmentations(torch.utils.data.Dataset):
                 steerings = self.cached_datafile["steerings"]
 
                 if isinstance(frames[idx], dict):
-                    left, _ = preprocess_image(frames[idx]["left"], steerings[idx])
-                    front, _ = preprocess_image(frames[idx]["front"], steerings[idx])
-                    right, steering = preprocess_image(frames[idx]["right"], steerings[idx])  # Keep last steering value
+                    left = preprocess_image(frames[idx]["left"])
+                    front = preprocess_image(frames[idx]["front"])
+                    right = preprocess_image(frames[idx]["right"])
+
+                    # Ensure steering is returned
+                    steering = torch.tensor(steerings[idx] / 2.0, dtype=torch.float32)                
                 else:
                     raise TypeError("Frames should be a dictionary for multi-camera data.")
 
-                return left, front, right, torch.tensor(steerings[idx], dtype=torch.float32)
+                return left, front, right, steering  # ✅ Steering is explicitly returned
 
             idx -= chunk["num_frames"]
+
 
 
 
