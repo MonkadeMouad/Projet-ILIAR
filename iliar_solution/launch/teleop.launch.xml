@@ -1,0 +1,24 @@
+<launch>	
+    <!-- argument world -->
+    <arg name="world" default="road.world"/>
+
+    <!-- Lancer la simulation -->
+    <include file="$(find-pkg-share iliar_solution)/launch/simu_gui.launch.xml" >
+	    <arg name="world" value="$(var world)"/>
+    </include>
+
+    <!-- Lancer le noeud joy_node pour la gestion de la manette -->
+    <node pkg="joy" exec="joy_node" name="joy_node" output="screen" />
+
+    <!-- Lancer le noeud teleop_command -->
+  
+    <node
+        pkg="iliar_solution"
+        exec="teleop_command"
+        output="screen">
+        <param name="max_steer" value="2.0"/> <!-- Bonne maniabilité -->
+        <param name="max_throttle" value="1.0"/> <!-- Bonne accélération -->
+        <param name="steering_axis" value="0"/>
+        <param name="throttle_axis" value="3"/>
+    </node>
+</launch>

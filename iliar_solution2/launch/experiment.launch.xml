@@ -1,0 +1,73 @@
+<launch>
+    <!-- Définir les arguments -->
+    <arg name="world" default="road.world" description="Nom du fichier .world à utiliser pour la simulation"/>
+    <arg name="gazebo_gui" default="true" description="Activer ou désactiver l'interface graphique de Gazebo"/>
+    <arg name="rviz_config" default="$(find-pkg-share iliar_solution2)/config/gui.rviz" description="Chemin vers le fichier RViz"/>
+    <arg name="autopilot_node" default="autopilot" description="Nom du nœud pour l'autopilot"/>
+    <arg name="teleop_node" default="teleop_command" description="Nom du nœud pour la téléopération"/>
+
+    <!-- Lancer Gazebo -->
+    <node
+        pkg="gazebo_ros"
+        exec="gzserver"
+        name="gazebo_server"
+        output="screen"
+        args="-s libgazebo_ros_factory.so $(find-pkg-share iliar_gazebo)/worlds/$(var world)"/>
+
+    <node
+        pkg="gazebo_ros"
+        exec="gzclient"
+        name="gazebo_client"
+        output="screen"
+        if="$(var gazebo_gui)"/>
+
+    <!-- Lancer RViz -->
+    <node
+        pkg="rviz2"
+        exec="rviz2"
+        name="rviz_node"
+        output="screen"
+        args="--display-config $(var rviz_config)">
+        <param name="use_sim_time" value="true"/>
+    </node>
+
+    <!-- Lancer le nœud joy_node -->
+    <node
+        pkg="joy"
+        exec="joy_node"
+        name="joy_node"
+        output="screen">
+        <param name="use_sim_time" value="true"/>
+    </node>
+
+    <!-- Lancer le nœud teleop_command -->
+    <node
+        pkg="iliar_solution2"
+        exec="$(var teleop_node)"
+        name="teleop_command_node"
+        output="screen">
+        <param name="max_steer" value="2.0"/>
+        <param name="max_throttle" value="1.0"/>
+        <param name="steering_axis" value="0"/>
+        <param name="throttle_axis" value="3"/>
+        <param name="use_sim_time" value="true"/>
+    </node>
+
+    <!-- Lancer le nœud autopilot -->
+    <node
+        pkg="iliar_solution2"
+        exec="$(var autopilot_node)"
+        name="autopilot_node"
+        output="screen">
+        <param name="use_sim_time" value="true"/>
+    </node>
+
+    <!-- Lancer le nœud command_mux -->
+    <node
+        pkg="iliar_solution2"
+        exec="command_mux"
+        name="command_mux_node"
+        output="screen">
+        <param name="use_sim_time" value="true"/>
+    </node>
+</launch>

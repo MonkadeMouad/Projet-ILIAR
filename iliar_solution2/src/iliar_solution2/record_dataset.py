@@ -60,7 +60,7 @@ class DatasetRecorder(Node):
         self.last_steering = None
         
         # Dataset directory
-        self.save_dir = os.path.expanduser("~/ros2_ws/dataset")
+        self.save_dir = os.path.expanduser("~/ros2_ws/dataset2")
         os.makedirs(self.save_dir, exist_ok=True)
         self.chunk_idx = self.get_highest_chunk_index() + 1
 
