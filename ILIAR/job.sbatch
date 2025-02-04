@@ -20,9 +20,9 @@ date
 mkdir $TMPDIR/code
 rsync -r --exclude logs --exclude logslurms --exclude configs . $TMPDIR/code
 
-echo "Checking out the correct version of the code commit_id e3f1572df1228ad5d0369729ea2a5014b495310f"
+echo "Checking out the correct version of the code commit_id f33a0b7a401f50ffb0f0b858203f0d8fcbdba17e"
 cd $TMPDIR/code
-git checkout e3f1572df1228ad5d0369729ea2a5014b495310f
+git checkout f33a0b7a401f50ffb0f0b858203f0d8fcbdba17e
 
 # Set up the virtual environment
 echo "Setting up the virtual environment"
@@ -46,7 +46,7 @@ echo "Logging into WandB"
 wandb login $WANDB_API_KEY
 # Start training
 echo "Training"
-python -m torchtmpl.minimal_train /usr/users/avr/avr_11/hammou1/hammou/ILIAR/configs/tmpd1kckdkw-config.yml train
+python -m torchtmpl.minimal_train /usr/users/avr/avr_11/hammou1/hammou/ILIAR/configs/tmpg8uqhhv6-config.yml train
 
 # Exit with error code if training fails
 if [[ $? != 0 ]]; then
