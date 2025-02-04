@@ -1,0 +1,18 @@
+<launch>	
+    <!-- Argument world -->
+    <arg name="world" default="road.world"/>
+
+    <!-- Inclure le fichier de lancement pour la simulation et la téléopération -->
+    <include file="$(find-pkg-share iliar_solution)/launch/teleop.launch.xml">
+        <arg name="world" value="$(var world)"/>
+    </include>
+	
+	  <!-- Lancer le noeud record_dataset -->
+    <node
+        pkg="iliar_solution"
+        exec="record_dataset"
+        output="screen">
+    </node>
+
+</launch>
+

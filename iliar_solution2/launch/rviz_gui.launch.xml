@@ -1,5 +1,0 @@
-<launch>
-    <node pkg="rviz2" exec="rviz2" args="--display-config $(find-pkg-share iliar_solution2)/config/gui.rviz">
-    	</node>
-</launch>
-
