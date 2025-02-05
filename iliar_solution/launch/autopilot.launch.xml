@@ -1,7 +1,7 @@
 <launch>
     <!-- Argument for the world -->
     <arg name="world" default="road.world"/>
-
+    <arg name="onnx_filename" default="~/hammou/iliar_solution/src/iliar_solution/mobilenetv2_9channels1.onnx" description="Nom du fichier du modèle ONNX"/>
     <!-- Lancer la simulation -->
     <include file="$(find-pkg-share iliar_solution)/launch/simu_gui.launch.xml">
         <arg name="world" value="$(var world)"/>

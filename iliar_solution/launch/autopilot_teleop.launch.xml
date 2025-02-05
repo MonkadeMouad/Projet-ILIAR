@@ -4,7 +4,7 @@
     <arg name="autopilot_node" default="autopilot" description="Nom du nœud pour l'autopilot"/>
     <arg name="teleop_node" default="teleop_command" description="Nom du nœud pour la téléopération"/>
     <arg name="gazebo_gui" default="true" description="Activer ou désactiver l'interface graphique de Gazebo"/>
-    <arg name="model_file" default="~/hammou/iliar_solution/src/iliar_solution/mobilenetv2_9channels1.onnx" description="Nom du fichier du modèle ONNX"/>
+    <arg name="onnx_filename" default="~/hammou/iliar_solution/src/iliar_solution/mobilenetv2_9channels1.onnx" description="Nom du fichier du modèle ONNX"/>
     <!-- Lancer la simulation -->
     <include file="$(find-pkg-share iliar_gazebo)/launch/simulation.launch.xml">
         <arg name="gazebo_gui" value="$(var gazebo_gui)"/>
