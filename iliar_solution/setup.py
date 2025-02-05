@@ -32,6 +32,7 @@ setup(
             'teleop_command = iliar_solution.teleop_command:main',
             'record_dataset = iliar_solution.record_dataset:main',
             'autopilot = iliar_solution.autopilot:main',
+            'autopilot2 = iliar_solution.autopilot2:main',
             'command_mux = iliar_solution.command_mux:main',
             'path_publisher = iliar_solution.path_publisher:main',
             'path_dilater = iliar_solution.path_dilater:main',

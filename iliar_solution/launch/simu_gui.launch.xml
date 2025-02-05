@@ -1,10 +1,10 @@
 <launch>
    
-
+    <arg name="world" default="road.world"/>
     <!-- Inclure simulation.launch.xml avec l'argument world transféré -->
     <include file="$(find-pkg-share iliar_gazebo)/launch/simulation.launch.xml">
         <arg name="gazebo_gui" value="true"/>
-        <arg name="world" value="road.world"/>
+        <arg name="world" value="$(var world)"/>
     </include>
 
     <!-- Inclure rviz_gui.launch.xml -->

@@ -62,35 +62,39 @@ class NPZDatasetWithAugmentations(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         def preprocess_image(image, steering):
-            # 1️⃣ Random Brightness, Contrast, Hue
-            brightness_factor = random.uniform(0.8, 1.2)
-            contrast_factor = random.uniform(0.8, 1.2)
-            hue_factor = random.uniform(-0.05, 0.05)
+            """Apply augmentations and normalize the image for MobileNetV2."""
 
-            image = cv2.convertScaleAbs(image, alpha=contrast_factor, beta=brightness_factor * 50)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-            image[:, :, 0] = np.clip(image[:, :, 0] + hue_factor * 255, 0, 255)
-            image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
+            # **Apply augmentation only if steering is not zero**
+            if self.augment and abs(steering) > 0.01:  # Avoid modifying straight driving data
+                #  Random Brightness, Contrast, Hue Adjustments
+                brightness_factor = random.uniform(0.8, 1.2)
+                contrast_factor = random.uniform(0.8, 1.2)
+                hue_factor = random.uniform(-0.05, 0.05)
 
-            # 2️⃣ Random Crop & Resize
-            h, w, _ = image.shape
-            x1, y1 = random.randint(0, w // 10), random.randint(0, h // 10)
-            x2, y2 = w - random.randint(0, w // 10), h - random.randint(0, h // 10)
-            image = image[y1:y2, x1:x2]
-            image = cv2.resize(image, self.image_size)
+                image = cv2.convertScaleAbs(image, alpha=contrast_factor, beta=brightness_factor * 50)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+                image[:, :, 0] = np.clip(image[:, :, 0] + hue_factor * 255, 0, 255)
+                image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
 
-            # 3️⃣ Add Gaussian Noise
-            noise = np.random.normal(0, 0.01, image.shape)
-            image = np.clip(image + noise, 0, 255)
+                #  Random Crop & Resize
+                h, w, _ = image.shape
+                x1, y1 = random.randint(0, w // 10), random.randint(0, h // 10)
+                x2, y2 = w - random.randint(0, w // 10), h - random.randint(0, h // 10)
+                image = image[y1:y2, x1:x2]
+                image = cv2.resize(image, self.image_size)
 
-            # 4️⃣ Motion Blur (randomly apply)
-            if random.random() < 0.2:
-                kernel_size = random.choice([3, 5, 7])
-                kernel = np.zeros((kernel_size, kernel_size))
-                kernel[int((kernel_size - 1) / 2), :] = np.ones(kernel_size) / kernel_size
-                image = cv2.filter2D(image, -1, kernel)
+                #  Add Gaussian Noise
+                noise = np.random.normal(0, 0.01, image.shape)
+                image = np.clip(image + noise, 0, 255)
 
-            # 5️⃣ Normalize for Pretrained MobileNetV2
+                #  Motion Blur (randomly apply)
+                if random.random() < 0.2:
+                    kernel_size = random.choice([3, 5, 7])
+                    kernel = np.zeros((kernel_size, kernel_size))
+                    kernel[int((kernel_size - 1) / 2), :] = np.ones(kernel_size) / kernel_size
+                    image = cv2.filter2D(image, -1, kernel)
+
+            #  Normalize for Pretrained MobileNetV2
             mean = np.array([0.485, 0.456, 0.406])
             std = np.array([0.229, 0.224, 0.225])
             image = image / 255.0  # Convert to [0,1] range
@@ -99,9 +103,12 @@ class NPZDatasetWithAugmentations(torch.utils.data.Dataset):
             # Convert HWC → CHW for PyTorch
             image = image.transpose(2, 0, 1)
 
-            return torch.tensor(image, dtype=torch.float32), torch.tensor(steering, dtype=torch.float32)
+            return torch.tensor(image, dtype=torch.float32)
 
-        # ✅ Removed tqdm for efficiency
+        def flip_image(image):
+            """Flip image horizontally."""
+            return np.flip(image, axis=1)  # Horizontal flip
+
         for f, chunk in self.datafiles.items():
             if idx < chunk["num_frames"]:
                 if self.cached_datafile["filename"] != f:
@@ -115,13 +122,26 @@ class NPZDatasetWithAugmentations(torch.utils.data.Dataset):
                 steerings = self.cached_datafile["steerings"]
 
                 if isinstance(frames[idx], dict):
-                    left, _ = preprocess_image(frames[idx]["left"], steerings[idx])
-                    front, _ = preprocess_image(frames[idx]["front"], steerings[idx])
-                    right, steering = preprocess_image(frames[idx]["right"], steerings[idx])  # Keep last steering value
+                    left = preprocess_image(frames[idx]["left"], steerings[idx])
+                    front = preprocess_image(frames[idx]["front"], steerings[idx])
+                    right = preprocess_image(frames[idx]["right"], steerings[idx])
+
+                    # **Horizontal Flip Augmentation**
+                    if self.augment and steerings[idx] not in {0, 2, -2}:
+                        left = flip_image(left)
+                        front = flip_image(front)
+                        right = flip_image(right)
+                        steering = -steerings[idx]  # Flip steering angle
+                    else:
+                        steering = steerings[idx]
+
+                    # Normalize steering to [-1,1] (already scaled by 2 in dataset)
+                    steering = torch.tensor(steering / 2.0, dtype=torch.float32)
+                
                 else:
                     raise TypeError("Frames should be a dictionary for multi-camera data.")
 
-                return left, front, right, torch.tensor(steerings[idx], dtype=torch.float32)
+                return left, front, right, steering  # ✅ Steering is explicitly returned
 
             idx -= chunk["num_frames"]
 

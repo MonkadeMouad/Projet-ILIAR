@@ -72,6 +72,10 @@ import torch
 import torch.nn as nn
 from torchvision.models import mobilenet_v2
 
+import torch
+import torch.nn as nn
+from torchvision.models import mobilenet_v2
+
 class MobileNetV2_9channels(nn.Module):
     def __init__(self, pretrained=True, num_classes=1, dropout_prob=0.3):
         super(MobileNetV2_9channels, self).__init__()
@@ -82,8 +86,8 @@ class MobileNetV2_9channels(nn.Module):
         # Modify the first convolutional layer to accept 9 channels instead of 3
         self.model = base_model
         self.model.features[0][0] = nn.Conv2d(
-            in_channels=9,              # Changed from 3 to 9
-            out_channels=32,            # Keep original out_channels
+            in_channels=9,
+            out_channels=32,
             kernel_size=3,
             stride=2,
             padding=1,
@@ -92,29 +96,35 @@ class MobileNetV2_9channels(nn.Module):
 
         # Initialize weights for new 9-channel conv layer
         if pretrained:
-            pretrained_conv1 = mobilenet_v2(pretrained=True).features[0][0].weight.data  # (32, 3, 3, 3)
-            new_conv1_weight = torch.zeros(32, 9, 3, 3)  # Initialize with zeros
+            pretrained_conv1 = mobilenet_v2(pretrained=True).features[0][0].weight.data
+            new_conv1_weight = torch.zeros(32, 9, 3, 3)
 
-            # Copy the first 3 channels from the pretrained model
+            # Copy first 3 channels from pretrained model
             new_conv1_weight[:, :3, :, :] = pretrained_conv1
 
-            # Fill the extra 6 channels with the mean of the first 3 channels
-            new_conv1_weight[:, 3:, :, :] = pretrained_conv1.mean(dim=1, keepdim=True).repeat(1, 6, 1, 1)
+            # Fill extra 6 channels with small random values
+            new_conv1_weight[:, 3:, :, :] = torch.randn_like(new_conv1_weight[:, 3:, :, :]) * 0.02
 
             self.model.features[0][0].weight = nn.Parameter(new_conv1_weight)
 
-        # Modify the classifier to match the desired number of output classes
-        in_features = self.model.classifier[1].in_features  # Get last FC layer input size
+        # Freeze first few layers for stability
+        for param in self.model.features[:5].parameters():
+            param.requires_grad = False  
+
+        # Modify classifier to include Tanh activation
+        in_features = self.model.classifier[1].in_features
         self.model.classifier = nn.Sequential(
             nn.Dropout(p=dropout_prob),
-            nn.Linear(in_features, num_classes)
+            nn.Linear(in_features, num_classes),
+            nn.Tanh()  # Constrains output between [-1,1]
         )
 
     def forward(self, left, front, right):
-        # Concatenate the left, forward, and right images along the channel dimension
+        # Concatenate left, forward, and right images along the channel dimension
         x = torch.cat([left, front, right], dim=1)
         x = self.model(x)
-        return x
+        return x * 2.0  # Scale back to [-2,2]
+
 
 import torch
 import torch.nn as nn
@@ -224,91 +234,5 @@ class NVIDIA_CNN(nn.Module):
         x = self.dropout(x)
         x = F.relu(self.fc3(x))
         x = self.fc4(x)  # Steering angle output
-
-        return x
-class ResNet18_9channels_CBAM(nn.Module):
-    def __init__(self, pretrained=True, num_classes=1, dropout_prob=0.5):
-        super(ResNet18_9channels_CBAM, self).__init__()
-
-        # Load ResNet18
-        self.model = resnet18(weights=ResNet18_Weights.DEFAULT)
-
-        # Modify first conv layer to take 9-channel input
-        self.model.conv1 = nn.Conv2d(9, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        if pretrained:
-            pretrained_conv1 = resnet18(weights=ResNet18_Weights.DEFAULT).conv1.weight.data
-            new_conv1_weight = torch.randn(64, 9, 7, 7) * 0.01
-            new_conv1_weight[:, :3, :, :] = pretrained_conv1  # Copy pre-trained weights for RGB channels
-            self.model.conv1.weight = nn.Parameter(new_conv1_weight)
-
-        # Insert CBAM before layer3 for maximum impact
-        self.cbam1 = CBAMBlock(channels=64)
-        self.cbam2 = CBAMBlock(channels=128)
-        self.cbam3 = CBAMBlock(channels=256)
-
-        self.dropout = nn.Dropout(p=dropout_prob)
-        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
-
-    def forward(self, left, forward, right):
-        x = torch.cat([left, forward, right], dim=1)  # Concatenate 3 views
-
-        # Apply ResNet layers with CBAM
-        x = self.model.conv1(x)
-        x = self.model.bn1(x)
-        x = self.model.relu(x)
-        x = self.model.maxpool(x)
-
-        x = self.model.layer1(x)
-        x = self.cbam1(x)  # CBAM added after layer1
-
-        x = self.model.layer2(x)
-        x = self.cbam2(x)  # CBAM after layer2
-
-        x = self.model.layer3(x)
-        x = self.cbam3(x)  # CBAM after layer3
-
-        x = self.model.layer4(x)
-
-        x = self.model.avgpool(x)
-        x = torch.flatten(x, 1)
-        x = self.dropout(x)
-        x = self.model.fc(x)
-
-        return x
-from torchvision.models import efficientnet_b0
-
-class EfficientNetB0_9channels_CBAM(nn.Module):
-    def __init__(self, pretrained=True, num_classes=1, dropout_prob=0.5):
-        super(EfficientNetB0_9channels_CBAM, self).__init__()
-
-        self.model = efficientnet_b0(weights="IMAGENET1K_V1")
-
-        # Modify first layer for 9 channels
-        self.model.features[0][0] = nn.Conv2d(9, 32, kernel_size=3, stride=1, padding=1, bias=False)
-
-        # Add CBAM Attention
-        self.cbam1 = CBAMBlock(32)
-        self.cbam2 = CBAMBlock(48)
-        self.cbam3 = CBAMBlock(112)
-
-        self.model.classifier[1] = nn.Linear(1280, num_classes)
-        self.dropout = nn.Dropout(p=dropout_prob)
-
-    def forward(self, left, forward, right):
-        x = torch.cat([left, forward, right], dim=1)
-
-        x = self.model.features[0](x)
-        x = self.cbam1(x)
-
-        x = self.model.features[1:3](x)
-        x = self.cbam2(x)
-
-        x = self.model.features[3:6](x)
-        x = self.cbam3(x)
-
-        x = self.model.features[6:](x)
-        x = x.mean([2, 3])
-        x = self.dropout(x)
-        x = self.model.classifier(x)
 
         return x
