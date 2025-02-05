@@ -25,12 +25,12 @@ class Autopilot(Node):
             history=HistoryPolicy.KEEP_LAST,
             depth=1,
         )
-        self.declare_parameter("model_file", "mobilenetv2_9channels1.onnx")
+        self.declare_parameter("model_file", "~/hammou/iliar_solution/src/iliar_solution/mobilenetv2_9channels1.onnx")
         model_file = self.get_parameter("model_file").get_parameter_value().string_value
 
         # Charger le modèle ONNX
         try:
-            model_path = os.path.expanduser(f"~/hammou/iliar_solution/src/iliar_solution/{model_file}")
+            model_path = os.path.expanduser(f"{model_file}")
             self.model = onnxruntime.InferenceSession(model_path)
             self.get_logger().info(f"ONNX model '{model_file}' loaded successfully.")
         except Exception as e:
