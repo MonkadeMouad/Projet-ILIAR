@@ -19,6 +19,17 @@ Ce fichier de lancement permet de démarrer la simulation en mode téléopérati
 ```bash
 ros2 launch iliar_solution teleop_record.launch.xml
 ```
+### **Autopilot**
+Un second fichier de lancement est disponible pour exécuter uniquement la simulation avec l'autopilot :
+
+- **Simulation Gazebo** : Chargement du monde spécifié.
+- **Autopilot** : Exécution du modèle de conduite autonome avec synchronisation sur le temps simulé.
+```bash
+ros2 launch iliar_solution autopilot.launch.xml
+```
+
+Ces fichiers de lancement permettent une configuration rapide et flexible du système en fonction des besoins spécifiques (téléopération, test du modèle autonome, ou visualisation).
+
 ### **Autopilot+Teleop**
 Le fichier principal permet de configurer et de lancer la simulation en intégrant plusieurs composants essentiels :
 
@@ -30,13 +41,3 @@ Le fichier principal permet de configurer et de lancer la simulation en intégra
 ```bash
 ros2 launch iliar_solution autopilot_teleop.launch.xml
 ```
-### **Autopilot**
-Un second fichier de lancement est disponible pour exécuter uniquement la simulation avec l'autopilot :
-
-- **Simulation Gazebo** : Chargement du monde spécifié.
-- **Autopilot** : Exécution du modèle de conduite autonome avec synchronisation sur le temps simulé.
-```bash
-ros2 launch iliar_solution autopilot.launch.xml
-```
-
-Ces fichiers de lancement permettent une configuration rapide et flexible du système en fonction des besoins spécifiques (téléopération, test du modèle autonome, ou visualisation).
